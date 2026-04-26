@@ -17,11 +17,15 @@ def get_settings() -> Settings:
 
 def get_s3_service(settings: Settings = Depends(get_settings)) -> S3Service:
     return S3Service(
-        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY.get_secret_value(),
         region=settings.AWS_REGION,
         bucket_uploads=settings.S3_BUCKET_UPLOADS,
         bucket_generated=settings.S3_BUCKET_GENERATED,
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=(
+            settings.AWS_SECRET_ACCESS_KEY.get_secret_value()
+            if settings.AWS_SECRET_ACCESS_KEY
+            else None
+        ),
         presigned_url_expiry=settings.S3_PRESIGNED_URL_EXPIRY,
         endpoint_url=settings.AWS_ENDPOINT_URL,
         external_url=settings.S3_EXTERNAL_URL,

@@ -15,11 +15,11 @@ logger = get_logger(__name__)
 class S3Service:
     def __init__(
         self,
-        aws_access_key_id: str,
-        aws_secret_access_key: str,
         region: str,
         bucket_uploads: str,
         bucket_generated: str,
+        aws_access_key_id: str | None = None,
+        aws_secret_access_key: str | None = None,
         presigned_url_expiry: int = 3600,
         endpoint_url: str | None = None,
         external_url: str | None = None,
@@ -32,10 +32,13 @@ class S3Service:
 
         client_kwargs: dict = {
             "service_name": "s3",
-            "aws_access_key_id": aws_access_key_id,
-            "aws_secret_access_key": aws_secret_access_key,
             "region_name": region,
         }
+        # Explicit credentials (local dev / LocalStack). If omitted, boto3
+        # falls back to instance role, env vars, or ~/.aws/credentials.
+        if aws_access_key_id and aws_secret_access_key:
+            client_kwargs["aws_access_key_id"] = aws_access_key_id
+            client_kwargs["aws_secret_access_key"] = aws_secret_access_key
         if endpoint_url:
             client_kwargs["endpoint_url"] = endpoint_url
 

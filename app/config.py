@@ -18,10 +18,10 @@ class Settings(BaseSettings):
     OPENAI_MAX_RETRIES: int = 2
     OPENAI_TEMPERATURE: float = 0.2
 
-    # AWS / S3
-    AWS_ACCESS_KEY_ID: str
-    AWS_SECRET_ACCESS_KEY: SecretStr
-    AWS_REGION: str = "us-east-1"
+    # AWS / S3 (credentials optional — uses instance role on EC2)
+    AWS_ACCESS_KEY_ID: str | None = None
+    AWS_SECRET_ACCESS_KEY: SecretStr | None = None
+    AWS_REGION: str = "ap-southeast-1"
     AWS_ENDPOINT_URL: str | None = None
     S3_EXTERNAL_URL: str | None = None  # Public-facing URL for presigned links (e.g. http://localhost:4566)
     S3_BUCKET_UPLOADS: str
