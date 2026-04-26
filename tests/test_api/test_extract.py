@@ -1,0 +1,98 @@
+from unittest.mock import MagicMock
+
+from app.dependencies import get_pipeline, get_s3_service
+from app.schemas.resume import PersonalInfo, ResumeData
+from app.services.pipeline import PipelineResult
+
+
+def test_extract_missing_api_key(client):
+    """Requests without X-API-Key header return 401."""
+    response = client.post("/api/v1/extract", files={"file": ("test.pdf", b"content")})
+    assert response.status_code == 401
+
+
+def test_extract_invalid_api_key(client):
+    """Requests with invalid X-API-Key return 401."""
+    response = client.post(
+        "/api/v1/extract",
+        files={"file": ("test.pdf", b"content")},
+        headers={"X-API-Key": "invalid-key"},
+    )
+    assert response.status_code == 401
+
+
+def test_extract_success(client, test_api_key):
+    """Successful extraction returns 200 with resume data and URLs."""
+    mock_pipeline = MagicMock()
+    mock_pipeline.process_resume.return_value = PipelineResult(
+        resume_data=ResumeData(
+            personal_info=PersonalInfo(
+                full_name="Jane Smith",
+                email="jane@test.com",
+                city="New York",
+                country="USA",
+            ),
+            skills=["Python"],
+        ),
+        raw_text="Jane Smith\nSoftware Engineer\nPython",
+        original_s3_key="originals/abc/test.pdf",
+        generated_s3_key="generated/abc/test_normalized.pdf",
+        processing_time_ms=1234.5,
+    )
+
+    mock_s3 = MagicMock()
+    mock_s3.generate_presigned_url.return_value = "https://s3.example.com/file"
+
+    client.app.dependency_overrides[get_pipeline] = lambda: mock_pipeline
+    client.app.dependency_overrides[get_s3_service] = lambda: mock_s3
+
+    response = client.post(
+        "/api/v1/extract",
+        files={"file": ("test.pdf", b"fake pdf content", "application/pdf")},
+        headers={"X-API-Key": test_api_key},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["resume_data"]["personal_info"]["full_name"] == "Jane Smith"
+    assert data["original_file_url"] == "https://s3.example.com/file"
+    assert data["generated_pdf_url"] == "https://s3.example.com/file"
+    assert data["raw_text"] == "Jane Smith\nSoftware Engineer\nPython"
+
+    client.app.dependency_overrides.pop(get_pipeline, None)
+    client.app.dependency_overrides.pop(get_s3_service, None)
+
+
+def test_extract_with_raw_text(client, test_api_key):
+    """When include_raw_text=true, raw text is included in response."""
+    mock_pipeline = MagicMock()
+    mock_pipeline.process_resume.return_value = PipelineResult(
+        resume_data=ResumeData(
+            personal_info=PersonalInfo(full_name="Jane Smith"),
+            skills=["Python"],
+        ),
+        raw_text="Jane Smith\nSoftware Engineer",
+        original_s3_key="originals/abc/test.pdf",
+        generated_s3_key="generated/abc/test_normalized.pdf",
+        processing_time_ms=500.0,
+    )
+
+    mock_s3 = MagicMock()
+    mock_s3.generate_presigned_url.return_value = "https://s3.example.com/file"
+
+    client.app.dependency_overrides[get_pipeline] = lambda: mock_pipeline
+    client.app.dependency_overrides[get_s3_service] = lambda: mock_s3
+
+    response = client.post(
+        "/api/v1/extract",
+        files={"file": ("test.pdf", b"fake pdf content", "application/pdf")},
+        headers={"X-API-Key": test_api_key},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["raw_text"] == "Jane Smith\nSoftware Engineer"
+
+    client.app.dependency_overrides.pop(get_pipeline, None)
+    client.app.dependency_overrides.pop(get_s3_service, None)
