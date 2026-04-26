@@ -1,3 +1,4 @@
-{$DOMAIN:localhost} {
+:443 {
+    tls /certs/origin.pem /certs/origin-key.pem
     reverse_proxy api:8000
 }

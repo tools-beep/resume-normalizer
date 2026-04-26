@@ -17,6 +17,9 @@ ENV/
 .env
 .env.prod
 
+# TLS certificates
+certs/
+
 # Database
 *.db
 *.sqlite3
