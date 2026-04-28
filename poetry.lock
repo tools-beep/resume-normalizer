@@ -2939,22 +2939,6 @@ files = [
 ]
 
 [[package]]
-name = "pytesseract"
-version = "0.3.13"
-description = "Python-tesseract is a python wrapper for Google's Tesseract-OCR"
-optional = false
-python-versions = ">=3.8"
-groups = ["main"]
-files = [
-    {file = "pytesseract-0.3.13-py3-none-any.whl", hash = "sha256:7a99c6c2ac598360693d83a416e36e0b33a67638bb9d77fdcac094a3589d4b34"},
-    {file = "pytesseract-0.3.13.tar.gz", hash = "sha256:4bf5f880c99406f52a3cfc2633e42d9dc67615e69d8a509d74867d3baddb5db9"},
-]
-
-[package.dependencies]
-packaging = ">=21.3"
-Pillow = ">=8.0.0"
-
-[[package]]
 name = "pytest"
 version = "8.4.2"
 description = "pytest: simple powerful testing with Python"
@@ -4157,4 +4141,4 @@ test = ["pytest", "pytest-cov"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.9"
-content-hash = "6da9e4fddd80f9555ed72119c972ffc95f133db3d873d6d4be646ba5e98253a2"
+content-hash = "334c972bf7776c4095756b1e8c70d45e6a67307a2e692790b927a0633377b652"
