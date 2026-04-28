@@ -11,11 +11,9 @@ RUN poetry export -f requirements.txt --without-hashes --without dev -o requirem
 # Stage 2: Runtime
 FROM python:3.12-slim-bookworm
 
-# Install system dependencies for OCR, PDF processing, and MIME detection
+# Install system dependencies for PDF processing and MIME detection
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        tesseract-ocr \
-        tesseract-ocr-eng \
         poppler-utils \
         libmagic1 \
         curl && \

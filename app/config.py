@@ -39,7 +39,6 @@ class Settings(BaseSettings):
 
     # OCR
     OCR_MIN_TEXT_LENGTH: int = 50
-    TESSERACT_CMD: str = "tesseract"
 
     @property
     def max_upload_size_bytes(self) -> int:

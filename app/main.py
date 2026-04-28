@@ -13,7 +13,6 @@ from app.auth.models import APIKey  # noqa: F401 — ensure model is registered
 from app.database import init_db
 from app.dependencies import get_settings
 from app.rate_limit import limiter
-from app.services.ocr_service import configure_tesseract
 from app.utils.logging import get_logger, setup_logging
 
 
@@ -27,9 +26,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Initialize database
     init_db(settings.DATABASE_URL)
     logger.info("Database initialized")
-
-    # Configure Tesseract
-    configure_tesseract(settings.TESSERACT_CMD)
 
     # Store rate limit config
     app.state.rate_limit = f"{settings.RATE_LIMIT_PER_MINUTE}/minute"

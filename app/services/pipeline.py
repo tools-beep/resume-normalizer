@@ -7,7 +7,6 @@ from app.config import Settings
 from app.schemas.resume import ResumeData
 from app.services.file_detector import FileType, detect_file_type
 from app.services.llm_service import LLMService
-from app.services.ocr_service import ocr_from_pdf
 from app.services.pdf_renderer import render_resume_pdf
 from app.services.s3_service import S3Service
 from app.services.text_extractor import extract_text_from_docx, extract_text_from_pdf
@@ -99,19 +98,35 @@ class Pipeline:
             resume_data = self.llm.extract_resume_data(raw_text)
             return raw_text, resume_data
 
-        # PDF: try text extraction first, fall back to OCR
+        # PDF: try text extraction first, fall back to vision for image-based PDFs
         raw_text = extract_text_from_pdf(file_content)
         if len(raw_text.strip()) < self.settings.OCR_MIN_TEXT_LENGTH:
             logger.info(
-                "PDF text extraction insufficient, falling back to OCR",
+                "PDF text extraction insufficient, routing to vision",
                 extra={"extracted_chars": len(raw_text.strip())},
             )
-            raw_text = ocr_from_pdf(file_content)
-            self._validate_text(raw_text, filename)
+            page_images = self._pdf_to_images(file_content)
+            resume_data = self.llm.extract_resume_data_from_images(page_images, mime_type="image/png")
+            return "[extracted via vision from image-based PDF]", resume_data
 
         logger.info("Text extraction complete", extra={"chars": len(raw_text)})
         resume_data = self.llm.extract_resume_data(raw_text)
         return raw_text, resume_data
+
+    @staticmethod
+    def _pdf_to_images(file_content: bytes) -> list[bytes]:
+        """Convert PDF pages to PNG byte arrays for vision processing."""
+        from io import BytesIO
+
+        from pdf2image import convert_from_bytes
+
+        pil_images = convert_from_bytes(file_content)
+        png_pages: list[bytes] = []
+        for img in pil_images:
+            buf = BytesIO()
+            img.save(buf, format="PNG")
+            png_pages.append(buf.getvalue())
+        return png_pages
 
     def _validate_text(self, raw_text: str, filename: str) -> None:
         """Validate extracted text has enough content."""
