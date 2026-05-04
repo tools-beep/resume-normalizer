@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile
 
 from app.auth.middleware import require_api_key
 from app.auth.models import APIKey
@@ -37,6 +37,13 @@ def _get_rate_limit_string() -> str:
 def extract_resume(
     request: Request,
     file: UploadFile,
+    hide_contact_info: bool = Query(
+        False,
+        description=(
+            "Omit the contact info line (email, location, phone, LinkedIn) "
+            "from the generated PDF."
+        ),
+    ),
     api_key: APIKey = Depends(require_api_key),
     pipeline: Pipeline = Depends(get_pipeline),
     s3_service: S3Service = Depends(get_s3_service),
@@ -56,7 +63,7 @@ def extract_resume(
     filename = file.filename or "unknown"
 
     try:
-        result = pipeline.process_resume(content, filename)
+        result = pipeline.process_resume(content, filename, hide_contact_info=hide_contact_info)
     except FileValidationError as e:
         raise HTTPException(status_code=415, detail=str(e))
     except TextExtractionError as e:

@@ -1,5 +1,14 @@
+import io
+
+import pdfplumber
+
 from app.schemas.resume import Education, Experience, PersonalInfo, ResumeData
 from app.services.pdf_renderer import render_resume_pdf
+
+
+def _extract_text(pdf_bytes: bytes) -> str:
+    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+        return "\n".join(page.extract_text() or "" for page in pdf.pages)
 
 
 def test_render_full_resume():
@@ -79,6 +88,48 @@ def test_render_special_characters():
 
     pdf_bytes = render_resume_pdf(data)
     assert len(pdf_bytes) > 0
+
+
+def test_render_hides_contact_info_when_flag_set():
+    """When hide_contact_info=True, the contact line is omitted but the name remains."""
+    data = ResumeData(
+        personal_info=PersonalInfo(
+            full_name="Jane Smith",
+            email="jane@example.com",
+            city="San Francisco",
+            country="USA",
+            phone="+1-555-0123",
+            linkedin_url="linkedin.com/in/janesmith",
+        ),
+        summary="Experienced engineer.",
+        skills=["Python"],
+    )
+
+    pdf_bytes = render_resume_pdf(data, hide_contact_info=True)
+    text = _extract_text(pdf_bytes)
+
+    assert "JANE SMITH" in text
+    assert "Experienced engineer." in text
+    assert "jane@example.com" not in text
+    assert "+1-555-0123" not in text
+    assert "linkedin.com/in/janesmith" not in text
+    assert "San Francisco" not in text
+
+
+def test_render_includes_contact_info_by_default():
+    """Default behavior renders the contact info line."""
+    data = ResumeData(
+        personal_info=PersonalInfo(
+            full_name="Jane Smith",
+            email="jane@example.com",
+            phone="+1-555-0123",
+        ),
+    )
+
+    text = _extract_text(render_resume_pdf(data))
+
+    assert "jane@example.com" in text
+    assert "+1-555-0123" in text
 
 
 def test_render_experience_without_job_title():

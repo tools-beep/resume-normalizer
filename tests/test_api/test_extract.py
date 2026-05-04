@@ -64,6 +64,68 @@ def test_extract_success(client, test_api_key):
     client.app.dependency_overrides.pop(get_s3_service, None)
 
 
+def test_extract_forwards_hide_contact_info_flag(client, test_api_key):
+    """The hide_contact_info query param is forwarded to the pipeline."""
+    mock_pipeline = MagicMock()
+    mock_pipeline.process_resume.return_value = PipelineResult(
+        resume_data=ResumeData(personal_info=PersonalInfo(full_name="Jane Smith")),
+        raw_text="Jane Smith",
+        original_s3_key="originals/abc/test.pdf",
+        generated_s3_key="generated/abc/test_normalized.pdf",
+        processing_time_ms=10.0,
+    )
+
+    mock_s3 = MagicMock()
+    mock_s3.generate_presigned_url.return_value = "https://s3.example.com/file"
+
+    client.app.dependency_overrides[get_pipeline] = lambda: mock_pipeline
+    client.app.dependency_overrides[get_s3_service] = lambda: mock_s3
+
+    response = client.post(
+        "/api/v1/extract?hide_contact_info=true",
+        files={"file": ("test.pdf", b"fake pdf content", "application/pdf")},
+        headers={"X-API-Key": test_api_key},
+    )
+
+    assert response.status_code == 200
+    _, kwargs = mock_pipeline.process_resume.call_args
+    assert kwargs["hide_contact_info"] is True
+
+    client.app.dependency_overrides.pop(get_pipeline, None)
+    client.app.dependency_overrides.pop(get_s3_service, None)
+
+
+def test_extract_hide_contact_info_defaults_false(client, test_api_key):
+    """Without the query param, hide_contact_info defaults to False."""
+    mock_pipeline = MagicMock()
+    mock_pipeline.process_resume.return_value = PipelineResult(
+        resume_data=ResumeData(personal_info=PersonalInfo(full_name="Jane Smith")),
+        raw_text="Jane Smith",
+        original_s3_key="originals/abc/test.pdf",
+        generated_s3_key="generated/abc/test_normalized.pdf",
+        processing_time_ms=10.0,
+    )
+
+    mock_s3 = MagicMock()
+    mock_s3.generate_presigned_url.return_value = "https://s3.example.com/file"
+
+    client.app.dependency_overrides[get_pipeline] = lambda: mock_pipeline
+    client.app.dependency_overrides[get_s3_service] = lambda: mock_s3
+
+    response = client.post(
+        "/api/v1/extract",
+        files={"file": ("test.pdf", b"fake pdf content", "application/pdf")},
+        headers={"X-API-Key": test_api_key},
+    )
+
+    assert response.status_code == 200
+    _, kwargs = mock_pipeline.process_resume.call_args
+    assert kwargs["hide_contact_info"] is False
+
+    client.app.dependency_overrides.pop(get_pipeline, None)
+    client.app.dependency_overrides.pop(get_s3_service, None)
+
+
 def test_extract_with_raw_text(client, test_api_key):
     """When include_raw_text=true, raw text is included in response."""
     mock_pipeline = MagicMock()

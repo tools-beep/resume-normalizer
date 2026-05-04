@@ -61,7 +61,7 @@ def _two_column_row(
     return table
 
 
-def render_resume_pdf(data: ResumeData) -> bytes:
+def render_resume_pdf(data: ResumeData, hide_contact_info: bool = False) -> bytes:
     """Render a ResumeData object into a standardized PDF matching the template spec."""
     try:
         buffer = io.BytesIO()
@@ -95,26 +95,27 @@ def render_resume_pdf(data: ResumeData) -> bytes:
             )
 
             # Row 2: email | city, country | phone | linkedin_url
-            contact_parts: list[str] = []
-            if info.email:
-                contact_parts.append(info.email)
-            location_str = ", ".join(
-                p.title() for p in [info.city, info.country] if p
-            )
-            if location_str:
-                contact_parts.append(location_str)
-            if info.phone:
-                contact_parts.append(info.phone)
-            if info.linkedin_url:
-                contact_parts.append(info.linkedin_url)
-
-            if contact_parts:
-                story.append(
-                    Paragraph(
-                        _esc(" | ".join(contact_parts)),
-                        styles["ContactInfo"],
-                    )
+            if not hide_contact_info:
+                contact_parts: list[str] = []
+                if info.email:
+                    contact_parts.append(info.email)
+                location_str = ", ".join(
+                    p.title() for p in [info.city, info.country] if p
                 )
+                if location_str:
+                    contact_parts.append(location_str)
+                if info.phone:
+                    contact_parts.append(info.phone)
+                if info.linkedin_url:
+                    contact_parts.append(info.linkedin_url)
+
+                if contact_parts:
+                    story.append(
+                        Paragraph(
+                            _esc(" | ".join(contact_parts)),
+                            styles["ContactInfo"],
+                        )
+                    )
 
         # ── SUMMARY SECTION ─────────────────────────────────────────────
 

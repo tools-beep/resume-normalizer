@@ -36,7 +36,9 @@ class Pipeline:
         self.s3 = s3_service
         self.llm = llm_service
 
-    def process_resume(self, file_content: bytes, filename: str) -> PipelineResult:
+    def process_resume(
+        self, file_content: bytes, filename: str, hide_contact_info: bool = False
+    ) -> PipelineResult:
         """Run the full resume processing pipeline."""
         start = time.monotonic()
 
@@ -54,7 +56,7 @@ class Pipeline:
         raw_text, resume_data = self._extract_and_parse(file_content, file_type, filename)
 
         # 6. Render standardized PDF
-        pdf_bytes = render_resume_pdf(resume_data)
+        pdf_bytes = render_resume_pdf(resume_data, hide_contact_info=hide_contact_info)
 
         # 7. Upload generated PDF to S3
         candidate_name = (
